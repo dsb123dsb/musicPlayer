@@ -3,6 +3,8 @@ import javax.swing.*;
 import javax.sound.midi.*;
 import java.util.*;
 import java.awt.event.*;
+import java.io.*;
+
 public class BeatBox {
 	JPanel mainPanel;
 	ArrayList<JCheckBox> checkboxList;
@@ -45,6 +47,14 @@ public class BeatBox {
 		JButton downTempo = new JButton("Tempo Down");
 		downTempo.addActionListener(new MyDownTempoListener());
 		buttonBox.add(downTempo);
+		
+		JButton store = new JButton("store");
+		store.addActionListener(new MySendListener());
+		buttonBox.add(store);
+		
+		JButton readStore = new JButton("readStore");
+		readStore.addActionListener(new MyReadListener());
+		buttonBox.add(readStore);
 		
 		Box nameBox = new Box(BoxLayout.Y_AXIS);
 		for(int i =0; i<16; i++){
@@ -135,6 +145,46 @@ public class BeatBox {
 		public void actionPerformed(ActionEvent a){
 			float tempoFactor = sequencer.getTempoFactor();
 			sequencer.setTempoFactor((float)(tempoFactor*.97));
+		}
+	}
+	// 存储复选框状态
+	public class MySendListener implements ActionListener{
+		public void actionPerformed(ActionEvent a){
+			boolean[] checkboxState = new boolean[256];
+			for(int i =0;i<256;i++){
+				JCheckBox check = (JCheckBox) checkboxList.get(i);
+				if(check.isSelected()){
+					checkboxState[i]=true;
+				}
+			}
+			try{// 将boolean数组序列化
+				FileOutputStream fileStream = new FileOutputStream(new File("Checkbox.ser"));
+				ObjectOutputStream os = new ObjectOutputStream(fileStream);
+				os.writeObject(checkboxState);
+			}catch(Exception ex) {ex.printStackTrace();}
+		}
+	}
+	// 读取复选框状态
+	public class MyReadListener implements ActionListener{
+		public void actionPerformed(ActionEvent a){
+			boolean[] checkboxState = null;
+			try{// 读取文件对象并且转化为boolean数组
+				FileInputStream fileIn = new FileInputStream(new File("Checkbox.ser"));
+				ObjectInputStream is = new ObjectInputStream(fileIn);
+				checkboxState=(boolean[]) is.readObject();
+			}catch(Exception ex) {ex.printStackTrace();}
+			
+			for(int i =0;i<256;i++){
+				JCheckBox check = (JCheckBox) checkboxList.get(i);
+				if(checkboxState[i]){
+					check.setSelected(true);
+				}else{
+					check.setSelected(false);
+				}
+			}
+			
+			sequencer.stop();
+			buildTrackAndStart();
 		}
 	}
 	public void makeTracks(int[] list){
